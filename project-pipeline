@@ -1,0 +1,51 @@
+pipeline {
+    agent {
+        label 'slave1'
+    }
+    
+    stages {
+        stage('checkout') {
+            steps {
+                git 'https://github.com/nileshkumargit/jenkins-java-project.git'
+            }
+        }
+        stage('build') {
+            steps {
+                sh 'mvn compile'
+            }
+        }
+        stage('test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('code quality') {
+            steps {
+                sh '''
+                    mvn sonar:sonar \
+                      -Dsonar.projectKey=netflix \
+                      -Dsonar.host.url=http://98.130.142.228:9000 \
+                      -Dsonar.login=85c5486932b809fb503ee83ee60573864133ae8a
+                '''
+            }
+        }
+        stage('artifact') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        stage('deploy') {
+            steps {
+                deploy adapters:[
+                    tomcat9(
+                        credentialsId: 'tomcat12',
+                        path: '',
+                        url: 'http://16.112.4.96:8080/manager/html'
+                        )
+                    ],
+                    contextPath: 'netflix',
+                    war: 'target/*.war'
+            }
+        }
+    }
+}
